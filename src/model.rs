@@ -13,6 +13,9 @@ impl Vec3 {
     pub fn zero() -> Self{
         Self::new(0., 0., 0.)
     }
+    pub fn one() -> Self{
+        Self::new(1., 1., 1.)
+    }
     pub fn add(&mut self, v: &Vec3) {
         self.x += v.x;
         self.y += v.y;
@@ -37,21 +40,60 @@ impl Vec2 {
 #[derive(Debug, Clone)]
 pub struct Polygon {
     pub points: Vec<Vec3>,
-    pub fill: bool,
-    pub faces: Option<Vec<Face>>
+    pub faces: Vec<Face>,
+    pub origin: Vec3,
+    pub translation: Vec3,
+    pub rotation: Vec3,
+    pub scale: Vec3
 }
 impl Polygon {
     pub fn new() -> Self {
-        Self { points: Vec::new(), fill: false, faces: None }
+        Self {
+            points: Vec::new(),
+            faces: Vec::new(),
+            origin: Vec3::zero(),
+            translation: Vec3::zero(),
+            rotation: Vec3::zero(),
+            scale: Vec3::one(),
+        }
     }
     pub fn with_points(points: Vec<Vec3>) -> Self {
-        Self { points, fill: false, faces: None }
+        Self {
+            points,
+            faces: Vec::new(),
+            origin: Vec3::zero(),
+            translation: Vec3::zero(),
+            rotation: Vec3::zero(),
+            scale: Vec3::one(),
+        }
     }
     pub fn with_points_and_faces(points: Vec<Vec3>, faces: Vec<Face>) -> Self {
-        Self { points, fill: false, faces: Some(faces) }
+        Self {
+            points,
+            faces,
+            origin: Vec3::zero(),
+            translation: Vec3::zero(),
+            rotation: Vec3::zero(),
+            scale: Vec3::one(),
+        }
     }
-    pub fn translate(&mut self, t: &Vec3) {
-        self.points.iter_mut().for_each(|v| v.add(t));
+    pub fn transformed_points(&self) -> Vec<Vec3> {
+        let mut t_v = self.points.iter()
+                .map(|p| p.clone())
+                .collect::<Vec<Vec3>>();
+
+        t_v.iter_mut()
+                .for_each(|p| p.add(&self.translation));
+
+        t_v
+    }
+    // pub fn translate(&mut self, t: &Vec3) {
+    //     self.points.iter_mut().for_each(|v| v.add(t));
+    // }
+}
+impl Default for Polygon {
+    fn default() -> Self {
+        Polygon::new()        
     }
 }
 

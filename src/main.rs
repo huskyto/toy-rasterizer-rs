@@ -31,7 +31,7 @@ use crate::model::Polygon;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let obj_str = fs::read_to_string("cube.obj").unwrap();
+    let obj_str = fs::read_to_string("dragon.obj").unwrap();
 
     let polygon = parser::parse_polygon(&obj_str).unwrap();
     let mut polys = vec![polygon];
@@ -67,12 +67,13 @@ async fn main() {
         let m_v = Vec3::new(0., 0., 0.02);
 
         // let m_v = Vec3::new(0., 0., -0.02);
-        polys.iter_mut().for_each(|p| p.translate(&m_v));
+        // polys.iter_mut().for_each(|p| p.translate(&m_v));
+        polys.iter_mut().for_each(|p| p.translation.add(&m_v));
 
         for p in &polys {
-            // draw_wireframe(p);
-            draw_vertices(p);
-            draw_defined_faces(p);
+            draw_defined_wireframe(p);
+            // draw_vertices(p);
+            // draw_defined_faces(p);
             // draw_faces(p);
         }
 
@@ -93,7 +94,7 @@ fn window_conf() -> Conf {
 // DRAW UTILS //
 
 fn draw_vertices(p: &Polygon) {
-    for v in &p.points {
+    for v in &p.transformed_points() {
         let proj = val_project(&v);
         if let Some(p) = proj {
             let sp = to_screen(&p);
@@ -103,15 +104,16 @@ fn draw_vertices(p: &Polygon) {
 }
 
 fn draw_wireframe(p: &Polygon) {
-    if p.points.len() > 1 {
-        for i in 0..p.points.len() - 1 {
+    let points = p.transformed_points();
+    if points.len() > 1 {
+        for i in 0..points.len() - 1 {
             if let Some((v1, v2)) = val_project_segment(
-                    &p.points[i], &p.points[i + 1]) {
+                    &points[i], &points[i + 1]) {
                 draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
             }
         }
         if let Some((v1, v2)) = val_project_segment(
-                    &p.points[p.points.len() - 1], &p.points[0]) {
+                    &points[points.len() - 1], &points[0]) {
             draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
         }
     }
@@ -120,12 +122,43 @@ fn draw_wireframe(p: &Polygon) {
     }
 }
 
-fn draw_defined_faces(polygon: &Polygon) {
-    let verts = &polygon.points;
-    if polygon.faces.is_none() {
-        return;
+fn draw_defined_wireframe(polygon: &Polygon) {
+    let verts = &polygon.transformed_points();
+    for face in &polygon.faces {
+        if face.points.len() > 1 {
+            for i in 0..face.points.len() - 1 {
+                if let Some((v1, v2)) = val_project_segment(
+                        &verts[face.points[i] as usize],
+                        &verts[face.points[i + 1] as usize]) {
+                    draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
+                }
+            }
+            if let Some((v1, v2)) = val_project_segment(
+                        &verts[face.points[face.points.len() - 1] as usize],
+                        &verts[face.points[0] as usize]) {
+                draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
+            }
+        }
+        let r_i = face.points[0];
+        let root = &verts[r_i as usize];
+        if let Some(v1) = val_project(&root) {
+            let v1 = to_screen(&v1);
+            for i in 1..face.points.len() - 1 {
+                if let Some((v2, v3)) = val_project_segment(
+                        &verts[face.points[i] as usize],
+                        &verts[face.points[i + 1] as usize]) {
+                    draw_triangle(&v1, &v2, &v3);
+                }
+            }
+        }
     }
-    for face in polygon.faces.as_ref().unwrap() {
+}
+fn draw_defined_faces(polygon: &Polygon) {
+    let verts = &polygon.transformed_points();
+    // if polygon.faces.is_none() {
+    //     return;
+    // }
+    for face in &polygon.faces {
         if face.points.len() >= 3 {
             let r_i = face.points[0];
             let root = &verts[r_i as usize];
@@ -167,7 +200,7 @@ fn draw_triangle(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
     let gv1 = glam::vec2(v1.x, v1.y);
     let gv2 = glam::vec2(v2.x, v2.y);
     let gv3 = glam::vec2(v3.x, v3.y);
-    let color = Color::from_rgba(128, 128, 128, 128);
+    let color = Color::from_rgba(64, 128, 192, 64);
     macroquad::prelude::draw_triangle(gv1, gv2, gv3, color);
 }
 
@@ -210,7 +243,7 @@ fn to_screen(v: &Vec2) -> Vec2 {
     let w = 800.;
     let h = 800.;
     let x = (v.x + 1.) / 2.;
-    let y = (v.y + 1.) / 2.;
+    let y = ((v.y * -1.) + 1.) / 2.;
 
     Vec2::new(x * w, y * h)
 }
