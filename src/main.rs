@@ -1,4 +1,10 @@
 
+pub mod model;
+pub mod parser;
+
+use std::fs;
+use std::fs::File;
+
 use macroquad::color::Color;
 use macroquad::color::GREEN;
 use macroquad::color::LIME;
@@ -18,29 +24,38 @@ use macroquad::window::Conf;
 use macroquad::window::next_frame;
 use macroquad::window::clear_background;
 
+use crate::model::Vec2;
+use crate::model::Vec3;
+use crate::model::Polygon;
+
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let init_verts = vec![
-        Vec3::new(-0.5, -0.5, 0.75),
-        Vec3::new(-0.5,  0.5, 0.75),
-        Vec3::new( 0.5,  0.5, 0.75),
-        Vec3::new( 0.5, -0.5, 0.75),
-    ];
-    let init_poly = Polygon::with_ponts(init_verts);
-    // let mut verts = vec![ ];
-    let mut polys = vec![];
-    for it in 0..15 {
-        let off = it as f32 * 1.;
-        let v_off = Vec3::new(0., 0., off);
-        let mut p = init_poly.clone();
-        p.translate(&v_off);
-        polys.push(p);
+    let obj_str = fs::read_to_string("cube.obj").unwrap();
 
-        // for v in &init_verts {
-        //     verts.push(Vec3::new(v.x, v.y, v.z + off));
-        // }
-    }
+    let polygon = parser::parse_polygon(&obj_str).unwrap();
+    let mut polys = vec![polygon];
+
+    // let init_verts = vec![
+    //     Vec3::new(-0.5, -0.5, 0.75),
+    //     Vec3::new(-0.5,  0.5, 0.75),
+    //     Vec3::new( 0.5,  0.5, 0.75),
+    //     Vec3::new( 0.5, -0.5, 0.75),
+    // ];
+    // let init_poly = Polygon::with_ponts(init_verts);
+    // // let mut verts = vec![ ];
+    // let mut polys = vec![];
+    // for it in 0..15 {
+    //     let off = it as f32 * 1.;
+    //     let v_off = Vec3::new(0., 0., off);
+    //     let mut p = init_poly.clone();
+    //     p.translate(&v_off);
+    //     polys.push(p);
+
+    //     // for v in &init_verts {
+    //     //     verts.push(Vec3::new(v.x, v.y, v.z + off));
+    //     // }
+    // }
     loop {
         if is_key_pressed(KeyCode::Q) {
             break;
@@ -49,13 +64,16 @@ async fn main() {
         clear_background(BLACK);
         draw_fps();
 
-        let m_v = Vec3::new(0., 0., -0.02);
+        let m_v = Vec3::new(0., 0., 0.02);
+
+        // let m_v = Vec3::new(0., 0., -0.02);
         polys.iter_mut().for_each(|p| p.translate(&m_v));
 
         for p in &polys {
-            draw_wireframe(p);
+            // draw_wireframe(p);
             draw_vertices(p);
-            draw_faces(p);
+            draw_defined_faces(p);
+            // draw_faces(p);
         }
 
         next_frame().await;
@@ -66,7 +84,7 @@ fn window_conf() -> Conf {
     Conf {
         window_title: "Simple 3D".to_string(),
         window_width: 800,
-        window_height: 600,
+        window_height: 800,
         fullscreen: false,
         ..Default::default()
     }
@@ -102,6 +120,31 @@ fn draw_wireframe(p: &Polygon) {
     }
 }
 
+fn draw_defined_faces(polygon: &Polygon) {
+    let verts = &polygon.points;
+    if polygon.faces.is_none() {
+        return;
+    }
+    for face in polygon.faces.as_ref().unwrap() {
+        if face.points.len() >= 3 {
+            let r_i = face.points[0];
+            let root = &verts[r_i as usize];
+            if let Some(v1) = val_project(&root) {
+                let v1 = to_screen(&v1);
+                for i in 1..face.points.len() - 1 {
+                    if let Some((v2, v3)) = val_project_segment(
+                            &verts[face.points[i] as usize],
+                            &verts[face.points[i + 1] as usize]) {
+                        draw_triangle(&v1, &v2, &v3);
+                    }
+                }
+            }
+        }
+        else {
+            println!("Invalid Polygon");
+        }
+    }
+}
 
 fn draw_faces(p: &Polygon) {
     if p.points.len() >= 3 {
@@ -165,7 +208,7 @@ fn val_project(v: &Vec3) -> Option<Vec2> {
 
 fn to_screen(v: &Vec2) -> Vec2 {
     let w = 800.;
-    let h = 600.;
+    let h = 800.;
     let x = (v.x + 1.) / 2.;
     let y = (v.y + 1.) / 2.;
 
@@ -176,55 +219,4 @@ fn project(v: &Vec3) -> Vec2 {
     let px = v.x / v.z;
     let py = v.y / v.z;
     Vec2::new(px, py)
-}
-
-#[derive(Debug, Clone)]
-pub struct Vec3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32
-}
-impl Vec3 {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self {x, y, z}
-    }
-    pub fn zero() -> Self{
-        Self::new(0., 0., 0.)
-    }
-    pub fn add(&mut self, v: &Vec3) {
-        self.x += v.x;
-        self.y += v.y;
-        self.z += v.z;
-    }
-}
-
-#[derive(Debug)]
-pub struct Vec2 {
-    pub x: f32,
-    pub y: f32,
-}
-impl Vec2 {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self {x, y}
-    }
-    pub fn zero() -> Self{
-        Self::new(0., 0.)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Polygon {
-    pub points: Vec<Vec3>,
-    pub fill: bool
-}
-impl Polygon {
-    fn new() -> Self {
-        Self { points: Vec::new(), fill: false }
-    }
-    fn with_ponts(points: Vec<Vec3>) -> Self {
-        Self { points, fill: false }
-    }
-    fn translate(&mut self, t: &Vec3) {
-        self.points.iter_mut().for_each(|v| v.add(t));
-    }
 }
