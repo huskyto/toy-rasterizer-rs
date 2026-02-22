@@ -1,12 +1,15 @@
 
+use macroquad::color::Color;
 use macroquad::color::GREEN;
 use macroquad::color::LIME;
 use macroquad::color::RED;
 use macroquad::color::BLUE;
 use macroquad::color::BLACK;
 use macroquad::color::WHITE;
+use macroquad::color::YELLOW;
 use macroquad::input::KeyCode;
 use macroquad::input::is_key_pressed;
+use macroquad::prelude::glam;
 use macroquad::text::draw_text;
 use macroquad::shapes::draw_line;
 use macroquad::shapes::draw_circle;
@@ -50,32 +53,10 @@ async fn main() {
         polys.iter_mut().for_each(|p| p.translate(&m_v));
 
         for p in &polys {
-            if p.points.len() > 1 {
-                for i in 0..p.points.len() - 1 {
-                    if let Some((v1, v2)) = val_project_segment(
-                            &p.points[i], &p.points[i + 1]) {
-                        draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
-                    }
-                }
-                if let Some((v1, v2)) = val_project_segment(
-                            &p.points[p.points.len() - 1], &p.points[0]) {
-                    draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
-                }
-            }
-            else {
-                println!("Invalid Polygon");
-            }
+            draw_wireframe(p);
+            draw_vertices(p);
+            draw_faces(p);
         }
-
-        // for v in &verts {
-        //     let proj = val_project(&v);
-        //     if let Some(p) = proj {
-        //         let sp = to_screen(&p);
-        //         // println!("{:#?}", &sp);
-        //         // draw_circle(sp.x, sp.y, 2., GREEN);
-        //         draw_circle(sp.x, sp.y, 2., LIME);
-        //     }
-        // }
 
         next_frame().await;
     }
@@ -91,22 +72,88 @@ fn window_conf() -> Conf {
     }
 }
 
+// DRAW UTILS //
+
+fn draw_vertices(p: &Polygon) {
+    for v in &p.points {
+        let proj = val_project(&v);
+        if let Some(p) = proj {
+            let sp = to_screen(&p);
+            draw_circle(sp.x, sp.y, 1.5, YELLOW);
+        }
+    }
+}
+
+fn draw_wireframe(p: &Polygon) {
+    if p.points.len() > 1 {
+        for i in 0..p.points.len() - 1 {
+            if let Some((v1, v2)) = val_project_segment(
+                    &p.points[i], &p.points[i + 1]) {
+                draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
+            }
+        }
+        if let Some((v1, v2)) = val_project_segment(
+                    &p.points[p.points.len() - 1], &p.points[0]) {
+            draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
+        }
+    }
+    else {
+        println!("Invalid Polygon");
+    }
+}
+
+
+fn draw_faces(p: &Polygon) {
+    if p.points.len() >= 3 {
+        if let Some(v1) = val_project(&p.points[0]) {
+            let v1 = to_screen(&v1);
+            for i in 1..p.points.len() - 1 {
+                if let Some((v2, v3)) = val_project_segment(
+                        &p.points[i], &p.points[i + 1]) {
+                    draw_triangle(&v1, &v2, &v3);
+                }
+            }
+        }
+    }
+    else {
+        println!("Invalid Polygon");
+    }
+}
+
+fn draw_triangle(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
+    let gv1 = glam::vec2(v1.x, v1.y);
+    let gv2 = glam::vec2(v2.x, v2.y);
+    let gv3 = glam::vec2(v3.x, v3.y);
+    let color = Color::from_rgba(128, 128, 128, 128);
+    macroquad::prelude::draw_triangle(gv1, gv2, gv3, color);
+}
+
 fn val_project_segment(v1: &Vec3, v2: &Vec3) -> Option<(Vec2, Vec2)> {
     let opt1 = &val_project(v1);
     let opt2 = &val_project(v2);
     if opt1.is_some() && opt2.is_some() {
         Some((to_screen(opt1.as_ref().unwrap()), to_screen(opt2.as_ref().unwrap())))
     }
-    else {
-        None
+    else { None }
+}
+fn val_project_triangle(v1: &Vec3, v2: &Vec3, v3: &Vec3) -> Option<(Vec2, Vec2, Vec2)> {
+    let opt1 = &val_project(v1);
+    let opt2 = &val_project(v2);
+    let opt3 = &val_project(v3);
+    if opt1.is_some() && opt2.is_some() && opt3.is_some() {
+        Some((
+            to_screen(opt1.as_ref().unwrap()),
+            to_screen(opt2.as_ref().unwrap()),
+            to_screen(opt3.as_ref().unwrap())))
     }
+    else { None }
 }
 
 fn val_project(v: &Vec3) -> Option<Vec2> {
         // avoid div by zero
         // cull behind camera
         // cull out of view
-    if v.z < 0.00001
+    if v.z < 0.4
             || v.x.abs() > 1.
             || v.y.abs() > 1. {
         None
@@ -168,13 +215,14 @@ impl Vec2 {
 #[derive(Debug, Clone)]
 pub struct Polygon {
     pub points: Vec<Vec3>,
+    pub fill: bool
 }
 impl Polygon {
     fn new() -> Self {
-        Self { points: Vec::new() }
+        Self { points: Vec::new(), fill: false }
     }
     fn with_ponts(points: Vec<Vec3>) -> Self {
-        Self { points }
+        Self { points, fill: false }
     }
     fn translate(&mut self, t: &Vec3) {
         self.points.iter_mut().for_each(|v| v.add(t));
