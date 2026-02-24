@@ -21,6 +21,21 @@ impl Vec3 {
         self.y += v.y;
         self.z += v.z;
     }
+    pub fn set(&mut self, x: f32, y: f32, z: f32) {
+        self.x = x;
+        self.y = y;
+        self.z = z;
+    }
+    pub fn len2(&self) -> f32 {
+        (self.x * self.x) + (self.y * self.y) + (self.z * self.z)
+    }
+    pub fn len(&self) -> f32 {
+        f32::sqrt(self.len2())
+    }
+    pub fn unit(&self) -> Vec3 {
+        let ln = self.len();
+        Vec3::new(self.x / ln, self.y / ln, self.z / ln)
+    }
 }
 
 #[derive(Debug)]
@@ -38,12 +53,44 @@ impl Vec2 {
 }
 
 #[derive(Debug, Clone)]
+pub struct Triangle {
+    pub points: [Vec3; 3]
+}
+impl Triangle {
+    pub fn new(p1: Vec3, p2: Vec3, p3: Vec3) -> Self {
+        Triangle { points: [p1, p2, p3] }
+    }
+    pub fn from(point_v: &Vec<Vec3>) -> Option<Self> {
+        if point_v.len() != 3 { None }
+        else { Some(Self::new(
+            point_v[0].clone(), point_v[1].clone(), point_v[2].clone())) }
+    }
+    pub fn normal(&self) -> Vec3 {
+        let v1 = &self.points[0];
+        let v2 = &self.points[1];
+        let v3 = &self.points[2];
+
+        let a = Vec3::new(v2.x - v1.x, v2.y - v1.y, v2.z - v1.z);
+        let b = Vec3::new(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z);
+
+        let nx = (a.y * b.z) - (a.z * b.y);
+        let ny = (a.z * b.x) - (a.x * b.z);
+        let nz = (a.x * b.y) - (a.y * b.x);
+        // Nx = Ay * Bz - Az * By
+        // Ny = Az * Bx - Ax * Bz
+        // Nz = Ax * By - Ay * Bx
+        Vec3::new(nx, ny, nz)
+    }
+}
+
+
+#[derive(Debug, Clone)]
 pub struct Polygon {
     pub points: Vec<Vec3>,
     pub faces: Vec<Face>,
     pub origin: Vec3,
     pub translation: Vec3,
-    pub rotation: Vec3,
+    pub rotated: Vec<Vec3>,
     pub scale: Vec3
 }
 impl Polygon {
@@ -53,32 +100,32 @@ impl Polygon {
             faces: Vec::new(),
             origin: Vec3::zero(),
             translation: Vec3::zero(),
-            rotation: Vec3::zero(),
+            rotated: Vec::new(),
             scale: Vec3::one(),
         }
     }
     pub fn with_points(points: Vec<Vec3>) -> Self {
         Self {
-            points,
             faces: Vec::new(),
             origin: Vec3::zero(),
             translation: Vec3::zero(),
-            rotation: Vec3::zero(),
+            rotated: points.clone(),
             scale: Vec3::one(),
+            points,
         }
     }
     pub fn with_points_and_faces(points: Vec<Vec3>, faces: Vec<Face>) -> Self {
         Self {
-            points,
             faces,
             origin: Vec3::zero(),
             translation: Vec3::zero(),
-            rotation: Vec3::zero(),
+            rotated: points.clone(),
             scale: Vec3::one(),
+            points,
         }
     }
     pub fn transformed_points(&self) -> Vec<Vec3> {
-        let mut t_v = self.points.iter()
+        let mut t_v = self.rotated.iter()
                 .map(|p| p.clone())
                 .collect::<Vec<Vec3>>();
 
@@ -90,6 +137,45 @@ impl Polygon {
     // pub fn translate(&mut self, t: &Vec3) {
     //     self.points.iter_mut().for_each(|v| v.add(t));
     // }
+
+    pub fn rotate_y(&mut self, th: f32) {
+        self.rotated.iter_mut().for_each(|point| {
+            let cos = f32::cos(th);
+            let sin = f32::sin(th);
+            let r_x = cos * point.x + sin * point.z;
+            let r_y = point.y;
+            let r_z = - sin * point.x + cos * point.z;
+            // let r_x = cos * point.x - sin * point.y;
+            // let r_y = sin * point.x + cos * point.y;
+            // let r_z = point.z;
+            point.set(r_x, r_y, r_z);
+        });
+    }
+
+    pub fn rotate_x(&mut self, th: f32) {
+        self.rotated.iter_mut().for_each(|point| {
+            let cos = f32::cos(th);
+            let sin = f32::sin(th);
+            let r_x = point.x;
+            let r_y = cos * point.y - sin * point.z;
+            let r_z = sin * point.y + cos * point.z;
+            // let r_x = cos * point.x - sin * point.y;
+            // let r_y = sin * point.x + cos * point.y;
+            // let r_z = point.z;
+            point.set(r_x, r_y, r_z);
+        });
+    }
+
+    pub fn rotate_z(&mut self, th: f32) {
+        self.rotated.iter_mut().for_each(|point| {
+            let cos = f32::cos(th);
+            let sin = f32::sin(th);
+            let r_x = cos * point.x - sin * point.y;
+            let r_y = sin * point.x + cos * point.y;
+            let r_z = point.z;
+            point.set(r_x, r_y, r_z);
+        });
+    }
 }
 impl Default for Polygon {
     fn default() -> Self {
