@@ -8,11 +8,11 @@ use macroquad::shapes::draw_circle;
 
 use crate::project;
 use crate::model::Vec2;
-use crate::model::Polygon;
+use crate::model::Mesh;
 use crate::model::Triangle;
 
 
-pub fn draw_vertices(p: &Polygon) {
+pub fn draw_vertices(p: &Mesh) {
     for v in &p.transformed_points() {
         let proj = project::val_project(&v);
         if let Some(p) = proj {
@@ -22,7 +22,7 @@ pub fn draw_vertices(p: &Polygon) {
     }
 }
 
-pub fn draw_wireframe(p: &Polygon) {
+pub fn draw_wireframe(p: &Mesh) {
     let points = p.transformed_points();
     if points.len() > 1 {
         for i in 0..points.len() - 1 {
@@ -41,7 +41,7 @@ pub fn draw_wireframe(p: &Polygon) {
     }
 }
 
-pub fn draw_defined_wireframe(polygon: &Polygon) {
+pub fn draw_defined_wireframe(polygon: &Mesh) {
     let verts = &polygon.transformed_points();
     for face in &polygon.faces {
         if face.points.len() > 1 {
@@ -73,11 +73,13 @@ pub fn draw_defined_wireframe(polygon: &Polygon) {
     }
 }
 
-pub fn draw_defined_faces(polygon: &Polygon) {
+pub fn draw_defined_faces(polygon: &Mesh) {
     let verts = &polygon.transformed_points();
     // if polygon.faces.is_none() {
     //     return;
     // }
+    let mut draw_list: Vec<(Vec2, Vec2, Vec2, Color, f32)> = Vec::new();
+
     for face in &polygon.faces {
         if face.points.len() >= 3 {
             let r_i = face.points[0];
@@ -92,14 +94,17 @@ pub fn draw_defined_faces(polygon: &Polygon) {
                         let triag = Triangle::new(
                                 root.clone(), p2.clone(), p3.clone());
                         let normal = triag.normal().unit();
-                        let r = ((normal.x + 1.) * 127.) as u8;
-                        let g = ((normal.y + 1.) * 127.) as u8;
-                        let b = ((normal.z + 1.) * 127.) as u8;
-                        // let c = Color::from_rgba(r, g, b, 192);
-                        // let c = Color::from_rgba(r, g, b, 128);
-                        let c = Color::from_rgba(r, g, b, 255);
-                        draw_triangle_colored(&v1, &v2, &v3, c);
-                        // draw_triangle(&v1, &v2, &v3);
+                        if normal.z < 0. {
+                            let r = ((normal.x + 1.) * 127.) as u8;
+                            let g = ((normal.y + 1.) * 127.) as u8;
+                            let b = ((normal.z + 1.) * 127.) as u8;
+                            // let c = Color::from_rgba(r, g, b, 192);
+                            // let c = Color::from_rgba(r, g, b, 128);
+                            let c = Color::from_rgba(r, g, b, 255);
+                            let z_ord = (root.z + p2.z + p3.z) / 3.;
+
+                            draw_list.push((v1.clone(), v2, v3, c, z_ord));
+                        }
                     }
                 }
             }
@@ -108,9 +113,13 @@ pub fn draw_defined_faces(polygon: &Polygon) {
             println!("Invalid Polygon");
         }
     }
+
+    draw_list.sort_by(|a, b| b.4.total_cmp(&a.4));
+    draw_list.iter().for_each(|(v1, v2, v3, c, _z_ord)|
+            draw_triangle_colored(&v1, &v2, &v3, *c));
 }
 
-pub fn draw_faces(p: &Polygon) {
+pub fn draw_faces(p: &Mesh) {
     if p.points.len() >= 3 {
         if let Some(v1) = project::val_project(&p.points[0]) {
             let v1 = project::to_screen(&v1);

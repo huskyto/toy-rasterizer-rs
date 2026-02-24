@@ -38,7 +38,7 @@ impl Vec3 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
@@ -83,7 +83,7 @@ impl Triangle {
 
 
 #[derive(Debug, Clone)]
-pub struct Polygon {
+pub struct Mesh {
     pub points: Vec<Vec3>,
     pub faces: Vec<Face>,
     pub origin: Vec3,
@@ -91,7 +91,7 @@ pub struct Polygon {
     pub rotated: Vec<Vec3>,
     pub scale: Vec3
 }
-impl Polygon {
+impl Mesh {
     pub fn new() -> Self {
         Self {
             points: Vec::new(),
@@ -170,9 +170,9 @@ impl Polygon {
     }
 }
 
-impl Default for Polygon {
+impl Default for Mesh {
     fn default() -> Self {
-        Polygon::new()        
+        Mesh::new()        
     }
 }
 

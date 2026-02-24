@@ -1,4 +1,5 @@
 
+use crate::consts;
 use crate::model::Vec2;
 use crate::model::Vec3;
 
@@ -42,8 +43,8 @@ pub fn val_project(v: &Vec3) -> Option<Vec2> {
 }
 
 pub fn to_screen(v: &Vec2) -> Vec2 {
-    let w = 800.;
-    let h = 800.;
+    let w = consts::WIDTH as f32;
+    let h = consts::HEIGHT as f32;
     let x = (v.x + 1.) / 2.;
     let y = ((v.y * -1.) + 1.) / 2.;
 

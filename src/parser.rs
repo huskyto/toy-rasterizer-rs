@@ -1,7 +1,7 @@
 
 use crate::Vec3;
 use crate::model::Face;
-use crate::model::Polygon;
+use crate::model::Mesh;
 
 
 pub fn parse_vertices(source: &str) -> Vec<Vec3> {
@@ -18,7 +18,7 @@ pub fn parse_vertices(source: &str) -> Vec<Vec3> {
         .collect()
 }
 
-pub fn parse_polygon(source: &str) -> Result<Polygon, String> {
+pub fn parse_polygon(source: &str) -> Result<Mesh, String> {
     let lines = source.lines().collect::<Vec<&str>>();
     let vertices: Vec<Vec3> = lines.iter()
         .filter_map(|l| l.strip_prefix("v "))
@@ -54,6 +54,6 @@ pub fn parse_polygon(source: &str) -> Result<Polygon, String> {
         })
         .collect();
 
-    Ok(Polygon::with_points_and_faces(vertices, faces))
+    Ok(Mesh::with_points_and_faces(vertices, faces))
     // todo!()
 }
