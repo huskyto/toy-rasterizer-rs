@@ -76,9 +76,7 @@ impl Triangle {
         let nx = (a.y * b.z) - (a.z * b.y);
         let ny = (a.z * b.x) - (a.x * b.z);
         let nz = (a.x * b.y) - (a.y * b.x);
-        // Nx = Ay * Bz - Az * By
-        // Ny = Az * Bx - Ax * Bz
-        // Nz = Ax * By - Ay * Bx
+
         Vec3::new(nx, ny, nz)
     }
 }
@@ -134,9 +132,6 @@ impl Polygon {
 
         t_v
     }
-    // pub fn translate(&mut self, t: &Vec3) {
-    //     self.points.iter_mut().for_each(|v| v.add(t));
-    // }
 
     pub fn rotate_y(&mut self, th: f32) {
         self.rotated.iter_mut().for_each(|point| {
@@ -145,9 +140,7 @@ impl Polygon {
             let r_x = cos * point.x + sin * point.z;
             let r_y = point.y;
             let r_z = - sin * point.x + cos * point.z;
-            // let r_x = cos * point.x - sin * point.y;
-            // let r_y = sin * point.x + cos * point.y;
-            // let r_z = point.z;
+
             point.set(r_x, r_y, r_z);
         });
     }
@@ -159,9 +152,7 @@ impl Polygon {
             let r_x = point.x;
             let r_y = cos * point.y - sin * point.z;
             let r_z = sin * point.y + cos * point.z;
-            // let r_x = cos * point.x - sin * point.y;
-            // let r_y = sin * point.x + cos * point.y;
-            // let r_z = point.z;
+
             point.set(r_x, r_y, r_z);
         });
     }
@@ -173,10 +164,12 @@ impl Polygon {
             let r_x = cos * point.x - sin * point.y;
             let r_y = sin * point.x + cos * point.y;
             let r_z = point.z;
+
             point.set(r_x, r_y, r_z);
         });
     }
 }
+
 impl Default for Polygon {
     fn default() -> Self {
         Polygon::new()        

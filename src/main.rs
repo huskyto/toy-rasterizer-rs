@@ -1,34 +1,20 @@
 
 pub mod model;
 pub mod parser;
+pub mod render;
+pub mod project;
 
 use std::fs;
-use std::fs::File;
 
-use macroquad::color::Color;
-use macroquad::color::DARKGRAY;
-use macroquad::color::GREEN;
-use macroquad::color::LIME;
-use macroquad::color::RED;
-use macroquad::color::BLUE;
-use macroquad::color::BLACK;
-use macroquad::color::WHITE;
-use macroquad::color::YELLOW;
-use macroquad::input::KeyCode;
-use macroquad::input::is_key_pressed;
-use macroquad::prelude::glam;
-use macroquad::text::draw_text;
-use macroquad::shapes::draw_line;
-use macroquad::shapes::draw_circle;
-use macroquad::time::draw_fps;
 use macroquad::window::Conf;
+use macroquad::color::Color;
+use macroquad::time::draw_fps;
+use macroquad::input::KeyCode;
 use macroquad::window::next_frame;
 use macroquad::window::clear_background;
+use macroquad::input::is_key_pressed;
 
-use crate::model::Triangle;
-use crate::model::Vec2;
 use crate::model::Vec3;
-use crate::model::Polygon;
 
 
 #[macroquad::main(window_conf)]
@@ -38,26 +24,6 @@ async fn main() {
     let polygon = parser::parse_polygon(&obj_str).unwrap();
     let mut polys = vec![polygon];
 
-    // let init_verts = vec![
-    //     Vec3::new(-0.5, -0.5, 0.75),
-    //     Vec3::new(-0.5,  0.5, 0.75),
-    //     Vec3::new( 0.5,  0.5, 0.75),
-    //     Vec3::new( 0.5, -0.5, 0.75),
-    // ];
-    // let init_poly = Polygon::with_ponts(init_verts);
-    // // let mut verts = vec![ ];
-    // let mut polys = vec![];
-    // for it in 0..15 {
-    //     let off = it as f32 * 1.;
-    //     let v_off = Vec3::new(0., 0., off);
-    //     let mut p = init_poly.clone();
-    //     p.translate(&v_off);
-    //     polys.push(p);
-
-    //     // for v in &init_verts {
-    //     //     verts.push(Vec3::new(v.x, v.y, v.z + off));
-    //     // }
-    // }
     loop {
         if is_key_pressed(KeyCode::Q) {
             break;
@@ -75,7 +41,7 @@ async fn main() {
         polys.iter_mut().for_each(|p| p.rotate_y(0.01));
 
         for p in &polys {
-            draw_defined_wireframe(p);
+            render::draw_defined_wireframe(p);
             // draw_vertices(p);
             // draw_defined_faces(p);
             // draw_faces(p);
@@ -95,187 +61,3 @@ fn window_conf() -> Conf {
     }
 }
 
-// DRAW UTILS //
-
-fn draw_vertices(p: &Polygon) {
-    for v in &p.transformed_points() {
-        let proj = val_project(&v);
-        if let Some(p) = proj {
-            let sp = to_screen(&p);
-            draw_circle(sp.x, sp.y, 1.5, YELLOW);
-        }
-    }
-}
-
-fn draw_wireframe(p: &Polygon) {
-    let points = p.transformed_points();
-    if points.len() > 1 {
-        for i in 0..points.len() - 1 {
-            if let Some((v1, v2)) = val_project_segment(
-                    &points[i], &points[i + 1]) {
-                draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
-            }
-        }
-        if let Some((v1, v2)) = val_project_segment(
-                    &points[points.len() - 1], &points[0]) {
-            draw_line(v1.x, v1.y, v2.x, v2.y, 2.0, LIME);
-        }
-    }
-    else {
-        println!("Invalid Polygon");
-    }
-}
-
-fn draw_defined_wireframe(polygon: &Polygon) {
-    let verts = &polygon.transformed_points();
-    for face in &polygon.faces {
-        if face.points.len() > 1 {
-            for i in 0..face.points.len() - 1 {
-                if let Some((v1, v2)) = val_project_segment(
-                        &verts[face.points[i] as usize],
-                        &verts[face.points[i + 1] as usize]) {
-                    draw_line(v1.x, v1.y, v2.x, v2.y, 1.0, LIME);
-                }
-            }
-            if let Some((v1, v2)) = val_project_segment(
-                        &verts[face.points[face.points.len() - 1] as usize],
-                        &verts[face.points[0] as usize]) {
-                draw_line(v1.x, v1.y, v2.x, v2.y, 1.0, LIME);
-            }
-        }
-        // let r_i = face.points[0];
-        // let root = &verts[r_i as usize];
-        // if let Some(v1) = val_project(&root) {
-        //     let v1 = to_screen(&v1);
-        //     for i in 1..face.points.len() - 1 {
-        //         if let Some((v2, v3)) = val_project_segment(
-        //                 &verts[face.points[i] as usize],
-        //                 &verts[face.points[i + 1] as usize]) {
-        //             draw_triangle(&v1, &v2, &v3);
-        //         }
-        //     }
-        // }
-    }
-}
-fn draw_defined_faces(polygon: &Polygon) {
-    let verts = &polygon.transformed_points();
-    // if polygon.faces.is_none() {
-    //     return;
-    // }
-    for face in &polygon.faces {
-        if face.points.len() >= 3 {
-            let r_i = face.points[0];
-            let root = &verts[r_i as usize];
-            if let Some(v1) = val_project(&root) {
-                let v1 = to_screen(&v1);
-                for i in 1..face.points.len() - 1 {
-                    let p2 = &verts[face.points[i] as usize];
-                    let p3 = &verts[face.points[i + 1] as usize];
-                    if let Some((v2, v3)) = val_project_segment(
-                            p2, p3) {
-                        let triag = Triangle::new(
-                                root.clone(), p2.clone(), p3.clone());
-                        let normal = triag.normal().unit();
-                        let r = ((normal.x + 1.) * 127.) as u8;
-                        let g = ((normal.y + 1.) * 127.) as u8;
-                        let b = ((normal.z + 1.) * 127.) as u8;
-                        // let c = Color::from_rgba(r, g, b, 192);
-                        // let c = Color::from_rgba(r, g, b, 128);
-                        let c = Color::from_rgba(r, g, b, 255);
-                        draw_triangle_colored(&v1, &v2, &v3, c);
-                        // draw_triangle(&v1, &v2, &v3);
-                    }
-                }
-            }
-        }
-        else {
-            println!("Invalid Polygon");
-        }
-    }
-}
-
-fn draw_faces(p: &Polygon) {
-    if p.points.len() >= 3 {
-        if let Some(v1) = val_project(&p.points[0]) {
-            let v1 = to_screen(&v1);
-            for i in 1..p.points.len() - 1 {
-                if let Some((v2, v3)) = val_project_segment(
-                        &p.points[i], &p.points[i + 1]) {
-                    draw_triangle(&v1, &v2, &v3);
-                }
-            }
-        }
-    }
-    else {
-        println!("Invalid Polygon");
-    }
-}
-
-fn draw_triangle(v1: &Vec2, v2: &Vec2, v3: &Vec2) {
-    let gv1 = glam::vec2(v1.x, v1.y);
-    let gv2 = glam::vec2(v2.x, v2.y);
-    let gv3 = glam::vec2(v3.x, v3.y);
-    // let color = Color::from_rgba(64, 128, 192, 64);
-    let color = Color::from_rgba(64, 128, 192, 192);
-    macroquad::prelude::draw_triangle(gv1, gv2, gv3, color);
-}
-
-fn draw_triangle_colored(v1: &Vec2, v2: &Vec2, v3: &Vec2, c: Color) {
-    let gv1 = glam::vec2(v1.x, v1.y);
-    let gv2 = glam::vec2(v2.x, v2.y);
-    let gv3 = glam::vec2(v3.x, v3.y);
-    // let color = Color::from_rgba(64, 128, 192, 64);
-    macroquad::prelude::draw_triangle(gv1, gv2, gv3, c);
-}
-
-fn val_project_segment(v1: &Vec3, v2: &Vec3) -> Option<(Vec2, Vec2)> {
-    let opt1 = &val_project(v1);
-    let opt2 = &val_project(v2);
-    if opt1.is_some() && opt2.is_some() {
-        Some((to_screen(opt1.as_ref().unwrap()), to_screen(opt2.as_ref().unwrap())))
-    }
-    else { None }
-}
-fn val_project_triangle(v1: &Vec3, v2: &Vec3, v3: &Vec3) -> Option<(Vec2, Vec2, Vec2)> {
-    let opt1 = &val_project(v1);
-    let opt2 = &val_project(v2);
-    let opt3 = &val_project(v3);
-    if opt1.is_some() && opt2.is_some() && opt3.is_some() {
-        Some((
-            to_screen(opt1.as_ref().unwrap()),
-            to_screen(opt2.as_ref().unwrap()),
-            to_screen(opt3.as_ref().unwrap())))
-    }
-    else { None }
-}
-
-fn val_project(v: &Vec3) -> Option<Vec2> {
-        // avoid div by zero
-        // cull behind camera
-        // cull out of view
-    // if false {
-    if v.z < 0.4
-    //         || v.x.abs() > 1.
-    //         || v.y.abs() > 1.
-    {
-        None
-    }
-    else {
-        Some(project(v))
-    }
-}
-
-fn to_screen(v: &Vec2) -> Vec2 {
-    let w = 800.;
-    let h = 800.;
-    let x = (v.x + 1.) / 2.;
-    let y = ((v.y * -1.) + 1.) / 2.;
-
-    Vec2::new(x * w, y * h)
-}
-
-fn project(v: &Vec3) -> Vec2 {
-    let px = v.x / v.z;
-    let py = v.y / v.z;
-    Vec2::new(px, py)
-}
