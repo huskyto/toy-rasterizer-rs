@@ -122,7 +122,7 @@ impl Mesh {
             points,
         }
     }
-    pub fn transformed_points(&self) -> Vec<Vec3> {
+    pub fn transformed_vertices(&self) -> Vec<Vec3> {
         let mut t_v = self.rotated.iter()
                 .map(|p| p.clone())
                 .collect::<Vec<Vec3>>();

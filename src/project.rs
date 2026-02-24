@@ -26,6 +26,10 @@ pub fn val_project_triangle(v1: &Vec3, v2: &Vec3, v3: &Vec3) -> Option<(Vec2, Ve
     else { None }
 }
 
+pub fn val_proj_scrn_vertex(v: &Vec3) -> Option<Vec2> {
+    val_project(v).map(|v| to_screen(&v))
+}
+
 pub fn val_project(v: &Vec3) -> Option<Vec2> {
         // avoid div by zero
         // cull behind camera

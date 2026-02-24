@@ -49,11 +49,10 @@ pub fn parse_polygon(source: &str) -> Result<Mesh, String> {
                 }
                 v.push(idx);
             }
+
             Face::with_points(v)
-            // v
         })
         .collect();
 
     Ok(Mesh::with_points_and_faces(vertices, faces))
-    // todo!()
 }
