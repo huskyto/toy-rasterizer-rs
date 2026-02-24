@@ -50,6 +50,15 @@ impl Vec2 {
     pub fn zero() -> Self{
         Self::new(0., 0.)
     }
+    pub fn sub(&self, b: &Vec2) -> Vec2 {
+        Vec2::new(self.x - b.x, self.y - b.y)
+    }
+    pub fn div(&self, s: f32) -> Vec2 {
+        Vec2::new(self.x / s, self.y / s)
+    }
+    pub fn cross(&self, b: &Vec2) -> f32 {
+        (self.x * b.y) - (self.y * b.x)
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -33,12 +33,7 @@ pub fn val_proj_scrn_vertex(v: &Vec3) -> Option<Vec2> {
 pub fn val_project(v: &Vec3) -> Option<Vec2> {
         // avoid div by zero
         // cull behind camera
-        // cull out of view
-    // if false {
-    if v.z < 0.4
-    //         || v.x.abs() > 1.
-    //         || v.y.abs() > 1.
-    {
+    if v.z < 0.4 {
         None
     }
     else {
@@ -56,7 +51,8 @@ pub fn to_screen(v: &Vec2) -> Vec2 {
 }
 
 fn project(v: &Vec3) -> Vec2 {
-    let px = v.x / v.z;
-    let py = v.y / v.z;
+    let fov = 1.;
+    let px = (v.x / v.z) * fov;
+    let py = (v.y / v.z) * fov;
     Vec2::new(px, py)
 }
