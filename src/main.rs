@@ -15,8 +15,9 @@ use std::time::Duration;
 use minifb::Window;
 use minifb::WindowOptions;
 
-use crate::camera::Camera;
+use crate::model::Mesh;
 use crate::model::Vec3;
+use crate::camera::Camera;
 use crate::consts::WIDTH;
 use crate::consts::HEIGHT;
 use crate::consts::BG_COLOR;
@@ -31,12 +32,18 @@ fn main() {
     // let path = "suzanne.obj";
     let obj_str = fs::read_to_string(path).unwrap();
 
-    let mut polygon = parser::parse_polygon(&obj_str).unwrap();
-    let start_loc = Vec3::new(0., 0., 3.0);
-    polygon.translation.add(&start_loc);
-    let mut polys = vec![polygon];
+    let mut polys = vec![
+        spawn_mesh_at(path, 0., 0., 5.),
+        spawn_mesh_at(path, -6., -5.,  9.),
+        spawn_mesh_at(path, -5.,  7., 10.),
+        spawn_mesh_at(path,  5.,  4.,  8.),
+        spawn_mesh_at(path,  3., -4., 12.),
+        spawn_mesh_at(path, -4., -7., 11.),
+        spawn_mesh_at(path, -7.,  5., 12.),
+        spawn_mesh_at(path,  3.,  6., 10.),
+        spawn_mesh_at(path,  6., -2., 14.),
+    ];
 
-    // let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
     let mut window = Window::new(WINDOW_TITLE,
             WIDTH, HEIGHT, WindowOptions::default())
             .expect("Failed to create window!");
@@ -48,9 +55,11 @@ fn main() {
     let fps_alpha = 0.1;
     let mut fps: f64 = 0.;
 
+    let  scale_vec = Vec3::new(0.02, 0.02, 0.02);
+
     while window.is_open() {
         let start_time = Instant::now();
-        if window.is_key_pressed(minifb::Key::Q, minifb::KeyRepeat::No) {
+        if window.is_key_pressed(minifb::Key::Escape, minifb::KeyRepeat::No) {
             break;
         }
 
@@ -111,4 +120,12 @@ fn main() {
 //         ..Default::default()
 //     }
 // }
+
+fn spawn_mesh_at(path: &str, x: f32, y: f32, z: f32) -> Mesh {
+    let obj_str = fs::read_to_string(path).unwrap();
+    let mut mesh = parser::parse_polygon(&obj_str).unwrap();
+    let start_loc = Vec3::new(x, y, z);
+    mesh.translation.add(&start_loc);
+    mesh
+}
 

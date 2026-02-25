@@ -37,13 +37,16 @@ impl Camera {
     }
 
     fn val_project(&self, v: &Vec3) -> Option<Vec2> {
-            // avoid div by zero
-            // cull behind camera
-        if v.z < 0.4 {
+        let mut v = v.clone();
+        v.sub(&self.position);
+            // near-plane cull
+        if v.z < 0.2 {
             None
         }
         else {
-            Some(self.project(v))
+            let px = (v.x / v.z) * self.fov;
+            let py = (v.y / v.z) * self.fov;
+            Some(Vec2::new(px, py))
         }
     }
 
@@ -54,15 +57,6 @@ impl Camera {
         let y = ((v.y * -1.) + 1.) / 2.;
 
         Vec2::new(x * w, y * h)
-    }
-    fn project(&self, v: &Vec3) -> Vec2 {
-        let mut v = v.clone();
-        v.sub(&self.position);
-        let px = (v.x / v.z) * self.fov;
-        let py = (v.y / v.z) * self.fov;
-        // let px = v.x;
-        // let py = v.y;
-        Vec2::new(px, py)
     }
 }
 impl Default for Camera {

@@ -164,7 +164,14 @@ impl Mesh {
                 .collect::<Vec<Vec3>>();
 
         t_v.iter_mut()
-                .for_each(|p| p.add(&self.translation));
+                .for_each(|v| {
+                    v.x = v.x * self.scale.x;
+                    v.y = v.y * self.scale.y;
+                    v.z = v.z * self.scale.z;
+                });
+
+        t_v.iter_mut()
+                .for_each(|v| v.add(&self.translation));
 
         t_v
     }
