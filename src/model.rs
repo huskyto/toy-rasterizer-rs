@@ -21,6 +21,11 @@ impl Vec3 {
         self.y += v.y;
         self.z += v.z;
     }
+    pub fn sub(&mut self, v: &Vec3) {
+        self.x -= v.x;
+        self.y -= v.y;
+        self.z -= v.z;
+    }
     pub fn set(&mut self, x: f32, y: f32, z: f32) {
         self.x = x;
         self.y = y;
@@ -36,6 +41,12 @@ impl Vec3 {
         let ln = self.len();
         Vec3::new(self.x / ln, self.y / ln, self.z / ln)
     }
+    pub fn dot(&self, b: &Vec3) -> f32 {
+        (self.x * b.x) + (self.y * b.y) + (self.z * b.z)
+    }
+    pub fn mult(&self, s: f32) -> Vec3 {
+        Vec3::new(self.x * s, self.y * s, self.z * s)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +60,31 @@ impl Vec2 {
     }
     pub fn zero() -> Self{
         Self::new(0., 0.)
+    }
+    pub fn add(&self, b: &Vec2) -> Vec2 {
+        Vec2::new(self.x + b.x, self.y + b.y)
+    }
+    pub fn sub(&self, b: &Vec2) -> Vec2 {
+        Vec2::new(self.x - b.x, self.y - b.y)
+    }
+    pub fn mult(&self, s: f32) -> Vec2 {
+        Vec2::new(self.x * s, self.y * s)
+    }
+    pub fn div(&self, s: f32) -> Vec2 {
+        Vec2::new(self.x / s, self.y / s)
+    }
+    pub fn cross(&self, b: &Vec2) -> f32 {
+        (self.x * b.y) - (self.y * b.x)
+    }
+    pub fn len2(&self) -> f32 {
+        (self.x * self.x) + (self.y * self.y)
+    }
+    pub fn len(&self) -> f32 {
+        self.len2().sqrt()
+    }
+    pub fn unit(&self) -> Vec2 {
+        let ln = self.len();
+        Vec2::new(self.x / ln, self.y / ln)
     }
 }
 
@@ -122,13 +158,20 @@ impl Mesh {
             points,
         }
     }
-    pub fn transformed_points(&self) -> Vec<Vec3> {
+    pub fn transformed_vertices(&self) -> Vec<Vec3> {
         let mut t_v = self.rotated.iter()
                 .map(|p| p.clone())
                 .collect::<Vec<Vec3>>();
 
         t_v.iter_mut()
-                .for_each(|p| p.add(&self.translation));
+                .for_each(|v| {
+                    v.x = v.x * self.scale.x;
+                    v.y = v.y * self.scale.y;
+                    v.z = v.z * self.scale.z;
+                });
+
+        t_v.iter_mut()
+                .for_each(|v| v.add(&self.translation));
 
         t_v
     }
