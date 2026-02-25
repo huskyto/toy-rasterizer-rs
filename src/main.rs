@@ -1,24 +1,26 @@
 
 pub mod model;
+pub mod camera;
+pub mod consts;
 pub mod parser;
 pub mod render;
 pub mod project;
-pub mod consts;
 pub mod renderer;
 
 use std::fs;
 use std::thread;
-use std::time::Duration;
 use std::time::Instant;
+use std::time::Duration;
 
 use minifb::Window;
 use minifb::WindowOptions;
 
-use crate::consts::BG_COLOR;
-use crate::consts::HEIGHT;
-use crate::consts::WIDTH;
-use crate::consts::WINDOW_TITLE;
+use crate::camera::Camera;
 use crate::model::Vec3;
+use crate::consts::WIDTH;
+use crate::consts::HEIGHT;
+use crate::consts::BG_COLOR;
+use crate::consts::WINDOW_TITLE;
 use crate::renderer::Renderer;
 
 
@@ -30,7 +32,7 @@ fn main() {
     let obj_str = fs::read_to_string(path).unwrap();
 
     let mut polygon = parser::parse_polygon(&obj_str).unwrap();
-    let start_loc = Vec3::new(0., 0., 2.5);
+    let start_loc = Vec3::new(0., 0., 3.0);
     polygon.translation.add(&start_loc);
     let mut polys = vec![polygon];
 
@@ -39,15 +41,37 @@ fn main() {
             WIDTH, HEIGHT, WindowOptions::default())
             .expect("Failed to create window!");
 
-    let mut renderer = Renderer::new(WIDTH, HEIGHT);
+    let mut camera = Camera::default();
+    camera.fov = 1.;
+    let mut renderer = Renderer::new(WIDTH, HEIGHT, camera);
 
-    let fps_alpha = 0.02;
+    let fps_alpha = 0.1;
     let mut fps: f64 = 0.;
 
     while window.is_open() {
         let start_time = Instant::now();
         if window.is_key_pressed(minifb::Key::Q, minifb::KeyRepeat::No) {
             break;
+        }
+
+        let delta = 0.1;
+        if window.is_key_pressed(minifb::Key::D, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.x += delta;
+        }
+        if window.is_key_pressed(minifb::Key::A, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.x -= delta;
+        }
+        if window.is_key_pressed(minifb::Key::W, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.y += delta;
+        }
+        if window.is_key_pressed(minifb::Key::S, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.y -= delta;
+        }
+        if window.is_key_pressed(minifb::Key::Z, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.z += delta;
+        }
+        if window.is_key_pressed(minifb::Key::X, minifb::KeyRepeat::Yes) {
+            renderer.camera.position.z -= delta;
         }
 
         renderer.clear(BG_COLOR);

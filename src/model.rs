@@ -21,6 +21,11 @@ impl Vec3 {
         self.y += v.y;
         self.z += v.z;
     }
+    pub fn sub(&mut self, v: &Vec3) {
+        self.x -= v.x;
+        self.y -= v.y;
+        self.z -= v.z;
+    }
     pub fn set(&mut self, x: f32, y: f32, z: f32) {
         self.x = x;
         self.y = y;

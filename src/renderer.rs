@@ -2,11 +2,11 @@
 use std::f32;
 use std::f32::INFINITY;
 
-use crate::project;
 use crate::model::Mesh;
 use crate::model::Vec2;
 use crate::model::Vec3;
 use crate::model::Triangle;
+use crate::camera::Camera;
 use crate::consts::VERT_SIZE;
 use crate::consts::VERT_COLOR;
 use crate::consts::SEG_COLOR;
@@ -21,13 +21,14 @@ pub struct Renderer {
     z_buffer: Vec<f32>,
     width: usize,
     height: usize,
+    pub camera: Camera
 }
 
 impl Renderer {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: usize, height: usize, camera: Camera) -> Self {
         let buffer: Vec<u32> = vec![0; width * height];
         let z_buffer: Vec<f32> = vec![INFINITY; width * height];
-        Self { buffer, z_buffer, width, height }
+        Self { buffer, z_buffer, width, height, camera }
     }
     pub fn get_buffer(&self) -> &Vec<u32> {
         &self.buffer
@@ -48,7 +49,7 @@ impl Renderer {
 
     pub fn draw_vertices(&mut self, mesh: &Mesh) {
         for t_v in &mesh.transformed_vertices() {
-            if let Some(v) = project::val_proj_scrn_vertex(t_v) {
+            if let Some(v) = self.camera.val_proj_scrn_vertex(t_v) {
                 self.draw_circle(&v, VERT_SIZE, VERT_COLOR);
             }
         }
@@ -60,13 +61,13 @@ impl Renderer {
         for face in &mesh.faces {
             if face.points.len() > 1 {
                 for i in 0..face.points.len() - 1 {
-                    if let Some((v1, v2)) = project::val_project_segment(
+                    if let Some((v1, v2)) = self.camera.val_project_segment(
                             &verts[face.points[i] as usize],
                             &verts[face.points[i + 1] as usize]) {
                         self.draw_line(&v1, &v2, SEG_THICKNESS, SEG_COLOR);
                     }
                 }
-                if let Some((v1, v2)) = project::val_project_segment(
+                if let Some((v1, v2)) = self.camera.val_project_segment(
                             &verts[face.points[face.points.len() - 1] as usize],
                             &verts[face.points[0] as usize]) {
                     self.draw_line(&v1, &v2, SEG_THICKNESS, SEG_COLOR);
@@ -90,7 +91,8 @@ impl Renderer {
                     let triag = Triangle::new(
                                 root.clone(), p2.clone(), p3.clone());
                     let normal = triag.normal().unit();
-                    if normal.z < 0. {
+                    if true {
+                    // if normal.z < 0. {
                         // let r = if normal.x < 0. { 0. } else { normal.x * 255.} as u32;
                         // let g = if normal.y < 0. { 0. } else { normal.y * 255.} as u32;
                         // let b = if normal.z < 0. { 0. } else { normal.z * 255.} as u32;
@@ -102,7 +104,7 @@ impl Renderer {
                         let brightness = sun_light.dot(&normal);
                         let clamped = brightness.min(1.).max(0.);
                         let r = (clamped * 127.) as u32;
-                        let g = (clamped * 127.) as u32;
+                        let g = (clamped * 212.) as u32;
                         let b = (clamped * 255.) as u32;
                         let c= (r << 16) + (g << 8) + b;
 
@@ -147,7 +149,7 @@ impl Renderer {
     }
 
     fn draw_3d_triangle(&mut self, a: &Vec3, b: &Vec3, c: &Vec3, color: u32) {
-        if let Some((pa, pb, pc)) = project::val_project_triangle(&a, &b, &c) {
+        if let Some((pa, pb, pc)) = self.camera.val_project_triangle(&a, &b, &c) {
                 // Bounding box.
             let min_x = pa.x.min(pb.x).min(pc.x) as usize;
             let max_x = pa.x.max(pb.x).max(pc.x) as usize;
@@ -205,8 +207,8 @@ impl Renderer {
         }
     }
     fn is_point_in_buffer(&self, x: usize, y: usize) -> bool {
-        x > 0 && x < self.width 
-            && y > 0 && y < self.height
+        x >= 0 && x < self.width 
+            && y >= 0 && y < self.height
     }
 
     fn barycentric(a: &Vec2, b: &Vec2, c: &Vec2, p: &Vec2) -> Option<(f32, f32, f32)> {
@@ -215,7 +217,8 @@ impl Renderer {
         let ap = p.sub(a);
 
         let denom = ab.cross(&ac);
-        if denom.abs() < 0.000001 { return None }
+        // if denom.abs() < 0.000001 { return None }
+        if denom < 0.000001 { return None }
 
         let u = ab.cross(&ap) / denom;
         let v = ap.cross(&ac) / denom;
