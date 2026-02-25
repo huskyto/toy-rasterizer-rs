@@ -41,18 +41,14 @@ fn main() {
 
     let mut renderer = Renderer::new(WIDTH, HEIGHT);
 
-    let mut frames: u128 = 0;
-    let mut time: u128 = 0;
+    let fps_alpha = 0.02;
+    let mut fps: f64 = 0.;
 
     while window.is_open() {
         let start_time = Instant::now();
         if window.is_key_pressed(minifb::Key::Q, minifb::KeyRepeat::No) {
             break;
         }
-
-        // let bg_color = Color::from_rgba(32, 32, 32, 255);
-        // clear_background(bg_color);
-        // draw_fps();
 
         renderer.clear(BG_COLOR);
 
@@ -63,27 +59,22 @@ fn main() {
         polys.iter_mut().for_each(|p| p.rotate_y(0.01));
 
         for p in &polys {
+            // renderer.draw_defined_wireframe(p);
             renderer.draw_vertices(p);
-            // render::draw_defined_wireframe(p);
-            // render::draw_vertices(p);
-            // render::draw_defined_faces(p);
-            // render::draw_faces(p);
+            // renderer.draw_defined_faces(p);
         }
-
-        // next_frame().await;
 
         let _ = window.update_with_buffer(renderer.get_buffer(), WIDTH, HEIGHT);
 
+        thread::sleep(Duration::from_millis(5));
+
         let duration = start_time.elapsed();
-        frames += 1;
-        time += duration.as_micros();
 
-        // let fps = 1_000_000 / duration.as_micros();
+        let new_fps = (1_000_000 / duration.as_micros()) as f64;
+        fps = fps * (1.0 - fps_alpha) + new_fps * fps_alpha;
 
-        let fps = 1_000_000 / (time / frames);
-        window.set_title(&format!("{} | {} FPS", WINDOW_TITLE, fps));
+        window.set_title(&format!("{} | {} FPS", WINDOW_TITLE, fps as u32));
 
-        thread::sleep(Duration::from_millis(10));
     }
 }
 

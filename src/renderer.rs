@@ -9,6 +9,8 @@ use crate::model::Vec3;
 use crate::model::Triangle;
 use crate::consts::VERT_SIZE;
 use crate::consts::VERT_COLOR;
+use crate::consts::SEG_COLOR;
+use crate::consts::SEG_THICKNESS;
 
 
 
@@ -44,19 +46,40 @@ impl Renderer {
         }
     }
 
-    pub fn draw_vertices(&mut self, p: &Mesh) {
-        for t_v in &p.transformed_vertices() {
+    pub fn draw_vertices(&mut self, mesh: &Mesh) {
+        for t_v in &mesh.transformed_vertices() {
             if let Some(v) = project::val_proj_scrn_vertex(t_v) {
                 self.draw_circle(&v, VERT_SIZE, VERT_COLOR);
             }
         }
     }
 
-    pub fn draw_defined_faces(&mut self, polygon: &Mesh) {
-        let verts = &polygon.transformed_vertices();
+
+    pub fn draw_defined_wireframe(&mut self, mesh: &Mesh) {
+        let verts = &mesh.transformed_vertices();
+        for face in &mesh.faces {
+            if face.points.len() > 1 {
+                for i in 0..face.points.len() - 1 {
+                    if let Some((v1, v2)) = project::val_project_segment(
+                            &verts[face.points[i] as usize],
+                            &verts[face.points[i + 1] as usize]) {
+                        self.draw_line(&v1, &v2, SEG_THICKNESS, SEG_COLOR);
+                    }
+                }
+                if let Some((v1, v2)) = project::val_project_segment(
+                            &verts[face.points[face.points.len() - 1] as usize],
+                            &verts[face.points[0] as usize]) {
+                    self.draw_line(&v1, &v2, SEG_THICKNESS, SEG_COLOR);
+                }
+            }
+        }
+    }
+
+    pub fn draw_defined_faces(&mut self, mesh: &Mesh) {
+        let verts = &mesh.transformed_vertices();
         let sun_light = Vec3::new(-0.5, 1., -0.5).mult(1.);
 
-        for face in &polygon.faces {
+        for face in &mesh.faces {
             if face.points.len() >= 3 {
                 let r_i = face.points[0];
                 let root = &verts[r_i as usize];
@@ -107,9 +130,25 @@ impl Renderer {
         }
     }
 
+    pub fn draw_line(&mut self, a: &Vec2, b: &Vec2, thickness: f32, color: u32) {
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+
+        let normal = Vec2::new(-dy, dx);
+        let thick_v = normal.unit().mult(thickness * 0.5);
+
+        let p0 = a.add(&thick_v);
+        let p1 = a.sub(&thick_v);
+        let p2 = b.add(&thick_v);
+        // let p3 = b.sub(&thick_v);
+
+        self.draw_triangle(&p0, &p1, &p2, color);
+        // self.draw_triangle(&p2, &p1, &p3, color);
+    }
+
     fn draw_3d_triangle(&mut self, a: &Vec3, b: &Vec3, c: &Vec3, color: u32) {
         if let Some((pa, pb, pc)) = project::val_project_triangle(&a, &b, &c) {
-            // Bounding box.
+                // Bounding box.
             let min_x = pa.x.min(pb.x).min(pc.x) as usize;
             let max_x = pa.x.max(pb.x).max(pc.x) as usize;
             let min_y = pa.y.min(pb.y).min(pc.y) as usize;

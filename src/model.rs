@@ -56,14 +56,30 @@ impl Vec2 {
     pub fn zero() -> Self{
         Self::new(0., 0.)
     }
+    pub fn add(&self, b: &Vec2) -> Vec2 {
+        Vec2::new(self.x + b.x, self.y + b.y)
+    }
     pub fn sub(&self, b: &Vec2) -> Vec2 {
         Vec2::new(self.x - b.x, self.y - b.y)
+    }
+    pub fn mult(&self, s: f32) -> Vec2 {
+        Vec2::new(self.x * s, self.y * s)
     }
     pub fn div(&self, s: f32) -> Vec2 {
         Vec2::new(self.x / s, self.y / s)
     }
     pub fn cross(&self, b: &Vec2) -> f32 {
         (self.x * b.y) - (self.y * b.x)
+    }
+    pub fn len2(&self) -> f32 {
+        (self.x * self.x) + (self.y * self.y)
+    }
+    pub fn len(&self) -> f32 {
+        self.len2().sqrt()
+    }
+    pub fn unit(&self) -> Vec2 {
+        let ln = self.len();
+        Vec2::new(self.x / ln, self.y / ln)
     }
 }
 
