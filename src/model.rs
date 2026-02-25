@@ -36,6 +36,12 @@ impl Vec3 {
         let ln = self.len();
         Vec3::new(self.x / ln, self.y / ln, self.z / ln)
     }
+    pub fn dot(&self, b: &Vec3) -> f32 {
+        (self.x * b.x) + (self.y * b.y) + (self.z * b.z)
+    }
+    pub fn mult(&self, s: f32) -> Vec3 {
+        Vec3::new(self.x * s, self.y * s, self.z * s)
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -54,6 +54,7 @@ impl Renderer {
 
     pub fn draw_defined_faces(&mut self, polygon: &Mesh) {
         let verts = &polygon.transformed_vertices();
+        let sun_light = Vec3::new(-0.5, 1., -0.5).mult(1.);
 
         for face in &polygon.faces {
             if face.points.len() >= 3 {
@@ -70,9 +71,16 @@ impl Renderer {
                         // let r = if normal.x < 0. { 0. } else { normal.x * 255.} as u32;
                         // let g = if normal.y < 0. { 0. } else { normal.y * 255.} as u32;
                         // let b = if normal.z < 0. { 0. } else { normal.z * 255.} as u32;
-                        let r = ((normal.x + 1.) * 127.) as u32;
-                        let g = ((normal.y + 1.) * 127.) as u32;
-                        let b = ((normal.z + 1.) * 127.) as u32;
+                        // let r = ((normal.x + 1.) * 127.) as u32;
+                        // let g = ((normal.y + 1.) * 127.) as u32;
+                        // let b = ((normal.z + 1.) * 127.) as u32;
+                        // let c= (r << 16) + (g << 8) + b;
+
+                        let brightness = sun_light.dot(&normal);
+                        let clamped = brightness.min(1.).max(0.);
+                        let r = (clamped * 127.) as u32;
+                        let g = (clamped * 127.) as u32;
+                        let b = (clamped * 255.) as u32;
                         let c= (r << 16) + (g << 8) + b;
 
                         self.draw_3d_triangle(root, p2, p3, c);
