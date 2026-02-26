@@ -7,9 +7,11 @@ use crate::model::Vec2;
 use crate::model::Vec3;
 use crate::model::Triangle;
 use crate::camera::Camera;
+use crate::consts::WIDTH;
+use crate::consts::HEIGHT;
 use crate::consts::VERT_SIZE;
-use crate::consts::VERT_COLOR;
 use crate::consts::SEG_COLOR;
+use crate::consts::VERT_COLOR;
 use crate::consts::SEG_THICKNESS;
 
 
@@ -150,19 +152,26 @@ impl Renderer {
 
     fn draw_3d_triangle(&mut self, a: &Vec3, b: &Vec3, c: &Vec3, color: u32) {
         if let Some((pa, pb, pc)) = self.camera.val_project_triangle(&a, &b, &c) {
+                // Barycentric precompute.
+            let ab = pb.sub(&pa);
+            let ac = pc.sub(&pa);
+
+            let denom = ab.cross(&ac);
+                // Culling back facing triangles.
+            if denom < 0.000001 { return }
+
                 // Bounding box.
-            let min_x = pa.x.min(pb.x).min(pc.x) as usize;
-            let max_x = pa.x.max(pb.x).max(pc.x) as usize;
-            let min_y = pa.y.min(pb.y).min(pc.y) as usize;
-            let max_y = pa.y.max(pb.y).max(pc.y) as usize;
+            let min_x = pa.x.min(pb.x).min(pc.x).max(0.) as usize;
+            let max_x = pa.x.max(pb.x).max(pc.x).min(WIDTH as f32) as usize;
+            let min_y = pa.y.min(pb.y).min(pc.y).max(0.) as usize;
+            let max_y = pa.y.max(pb.y).max(pc.y).min(HEIGHT as f32) as usize;
 
             for x in min_x..=max_x { for y in min_y..=max_y {
                 let p = Vec2::new(x as f32, y as f32);
-                if let Some((u, v, w)) = Self::barycentric(&pa, &pb, &pc, &p) {
+                let (u, v, w) = Self::optim_to_bary(&pa, &p, &ab, &ac, denom);
                     if u >= 0.0 && v >= 0.0 && w >= 0.0 {
                         let z = (a.z * u) + (b.z * v) + (c.z * w);
                         self.paint_pixel_z(x, y, z, color);
-                    }
                 }
             }}
         }
@@ -170,10 +179,10 @@ impl Renderer {
 
     fn draw_triangle(&mut self, a: &Vec2, b: &Vec2, c: &Vec2, color: u32) {
             // Bounding box.
-        let min_x = a.x.min(b.x).min(c.x) as usize;
-        let max_x = a.x.max(b.x).max(c.x) as usize;
-        let min_y = a.y.min(b.y).min(c.y) as usize;
-        let max_y = a.y.max(b.y).max(c.y) as usize;
+        let min_x = a.x.min(b.x).min(c.x).max(0.) as usize;
+        let max_x = a.x.max(b.x).max(c.x).min(WIDTH as f32) as usize;
+        let min_y = a.y.min(b.y).min(c.y).max(0.) as usize;
+        let max_y = a.y.max(b.y).max(c.y).min(HEIGHT as f32) as usize;
 
         for x in min_x..=max_x {
             for y in min_y..=max_y {
@@ -207,8 +216,7 @@ impl Renderer {
         }
     }
     fn is_point_in_buffer(&self, x: usize, y: usize) -> bool {
-        x >= 0 && x < self.width 
-            && y >= 0 && y < self.height
+        x < self.width && y < self.height
     }
 
     fn barycentric(a: &Vec2, b: &Vec2, c: &Vec2, p: &Vec2) -> Option<(f32, f32, f32)> {
@@ -225,5 +233,15 @@ impl Renderer {
         let w = 1.0 - u - v;
 
         Some((u, v, w))
+    }
+
+    fn optim_to_bary(a: &Vec2, p: &Vec2, ab: &Vec2, ac: &Vec2, denom: f32) -> (f32, f32, f32) {
+        let ap = p.sub(a);
+
+        let u = ab.cross(&ap) / denom;
+        let v = ap.cross(&ac) / denom;
+        let w = 1.0 - u - v;
+
+        (u, v, w)
     }
 }
