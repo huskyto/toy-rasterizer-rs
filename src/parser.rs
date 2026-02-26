@@ -4,20 +4,6 @@ use crate::model::Face;
 use crate::model::Mesh;
 
 
-pub fn parse_vertices(source: &str) -> Vec<Vec3> {
-    let lines = source.lines().collect::<Vec<&str>>();
-    lines.iter()
-        .filter_map(|l| l.strip_prefix("v "))
-        .map(|p| {
-            let s = p.split(" ").collect::<Vec<&str>>();
-            let x = s[0].parse::<f32>().expect(&format!("Invalid X for vertex: {}", p));
-            let y = s[1].parse::<f32>().expect(&format!("Invalid Y for vertex: {}", p));
-            let z = s[2].parse::<f32>().expect(&format!("Invalid Z for vertex: {}", p));
-            Vec3::new(x, y, z)
-        })
-        .collect()
-}
-
 pub fn parse_polygon(source: &str) -> Result<Mesh, String> {
     let lines = source.lines().collect::<Vec<&str>>();
     let vertices: Vec<Vec3> = lines.iter()

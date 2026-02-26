@@ -3,8 +3,6 @@ pub mod model;
 pub mod camera;
 pub mod consts;
 pub mod parser;
-pub mod render;
-pub mod project;
 pub mod renderer;
 
 use std::fs;
