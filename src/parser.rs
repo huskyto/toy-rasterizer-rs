@@ -10,9 +10,9 @@ pub fn parse_polygon(source: &str) -> Result<Mesh, String> {
         .filter_map(|l| l.strip_prefix("v "))
         .map(|p| {
             let s = p.split(" ").collect::<Vec<&str>>();
-            let x = s[0].parse::<f32>().expect(&format!("Invalid X for vertex: {}", p));
-            let y = s[1].parse::<f32>().expect(&format!("Invalid Y for vertex: {}", p));
-            let z = s[2].parse::<f32>().expect(&format!("Invalid Z for vertex: {}", p));
+            let x = s[0].parse::<f32>().unwrap_or_else(|_| panic!("Invalid X for vertex: {}", p));
+            let y = s[1].parse::<f32>().unwrap_or_else(|_| panic!("Invalid Y for vertex: {}", p));
+            let z = s[2].parse::<f32>().unwrap_or_else(|_| panic!("Invalid Z for vertex: {}", p));
             Vec3::new(x, y, z)
         })
         .collect();
@@ -23,13 +23,13 @@ pub fn parse_polygon(source: &str) -> Result<Mesh, String> {
             let s = f.split(" ").collect::<Vec<&str>>();
             let mut v = Vec::new();
             for p in s {
-                let idx = if p.contains(&"/") {
+                let idx = if p.contains("/") {
                     p.split("/").collect::<Vec<&str>>()[0]
                 }
                 else {
                     p
                 };
-                let idx = idx.parse::<u32>().expect(&format!("Invalid index for face: {}", f)) - 1;
+                let idx = idx.parse::<u32>().unwrap_or_else(|_| panic!("Invalid index for face: {}", f)) - 1;
                 if idx >= vertices.len() as u32 {
                     panic!("Invalid face for polygon: {}", f);
                 }

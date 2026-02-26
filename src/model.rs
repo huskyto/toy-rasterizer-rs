@@ -96,7 +96,7 @@ impl Triangle {
     pub fn new(p1: Vec3, p2: Vec3, p3: Vec3) -> Self {
         Triangle { points: [p1, p2, p3] }
     }
-    pub fn from(point_v: &Vec<Vec3>) -> Option<Self> {
+    pub fn from(point_v: &[Vec3]) -> Option<Self> {
         if point_v.len() != 3 { None }
         else { Some(Self::new(
             point_v[0].clone(), point_v[1].clone(), point_v[2].clone())) }
@@ -159,15 +159,13 @@ impl Mesh {
         }
     }
     pub fn transformed_vertices(&self) -> Vec<Vec3> {
-        let mut t_v = self.rotated.iter()
-                .map(|p| p.clone())
-                .collect::<Vec<Vec3>>();
+        let mut t_v = self.rotated.to_vec();
 
         t_v.iter_mut()
                 .for_each(|v| {
-                    v.x = v.x * self.scale.x;
-                    v.y = v.y * self.scale.y;
-                    v.z = v.z * self.scale.z;
+                    v.x *= self.scale.x;
+                    v.y *= self.scale.y;
+                    v.z *= self.scale.z;
                 });
 
         t_v.iter_mut()
@@ -219,7 +217,7 @@ impl Default for Mesh {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Face {
     pub points: Vec<u32>,
 }

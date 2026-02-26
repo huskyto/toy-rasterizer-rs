@@ -46,8 +46,10 @@ fn main() {
             WIDTH, HEIGHT, WindowOptions::default())
             .expect("Failed to create window!");
 
-    let mut camera = Camera::default();
-    camera.fov = 1.;
+    let camera = Camera {
+        fov: 1.,
+        ..Default::default()
+    };
     let mut renderer = Renderer::new(WIDTH, HEIGHT, camera);
 
     let fps_alpha = 0.1;

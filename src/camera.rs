@@ -53,8 +53,8 @@ impl Camera {
     pub fn to_screen(v: &Vec2) -> Vec2 {
         let w = consts::WIDTH as f32;
         let h = consts::HEIGHT as f32;
-        let x = (v.x + 1.) / 2.;
-        let y = ((v.y * -1.) + 1.) / 2.;
+        let x = ( v.x + 1.) / 2.;
+        let y = (-v.y + 1.) / 2.;
 
         Vec2::new(x * w, y * h)
     }

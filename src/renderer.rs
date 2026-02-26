@@ -1,6 +1,5 @@
 
 use std::f32;
-use std::f32::INFINITY;
 
 use crate::model::Mesh;
 use crate::model::Vec2;
@@ -29,7 +28,7 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(width: usize, height: usize, camera: Camera) -> Self {
         let buffer: Vec<u32> = vec![0; width * height];
-        let z_buffer: Vec<f32> = vec![INFINITY; width * height];
+        let z_buffer: Vec<f32> = vec![f32::INFINITY; width * height];
         Self { buffer, z_buffer, width, height, camera }
     }
     pub fn get_buffer(&self) -> &Vec<u32> {
@@ -104,7 +103,7 @@ impl Renderer {
                         // let c= (r << 16) + (g << 8) + b;
 
                         let brightness = sun_light.dot(&normal);
-                        let clamped = brightness.min(1.).max(0.);
+                        let clamped = brightness.clamp(0., 1.);
                         let r = (clamped * 127.) as u32;
                         let g = (clamped * 212.) as u32;
                         let b = (clamped * 255.) as u32;
@@ -151,7 +150,8 @@ impl Renderer {
     }
 
     fn draw_3d_triangle(&mut self, a: &Vec3, b: &Vec3, c: &Vec3, color: u32) {
-        if let Some((pa, pb, pc)) = self.camera.val_project_triangle(&a, &b, &c) {
+        if let Some((pa, pb, pc)) =
+                self.camera.val_project_triangle(a, b, c) {
                 // Barycentric precompute.
             let ab = pb.sub(&pa);
             let ac = pc.sub(&pa);
@@ -169,9 +169,10 @@ impl Renderer {
             for x in min_x..=max_x { for y in min_y..=max_y {
                 let p = Vec2::new(x as f32, y as f32);
                 let (u, v, w) = Self::optim_to_bary(&pa, &p, &ab, &ac, denom);
-                    if u >= 0.0 && v >= 0.0 && w >= 0.0 {
-                        let z = (a.z * u) + (b.z * v) + (c.z * w);
-                        self.paint_pixel_z(x, y, z, color);
+                if u >= 0.0 && v >= 0.0 && w >= 0.0 {
+                    let inv_z = u * (1.0 / a.z) + v * (1.0 / b.z) + w * (1.0 / c.z);
+                    let z = 1.0 / inv_z;
+                    self.paint_pixel_z(x, y, z, color);
                 }
             }}
         }
@@ -187,10 +188,10 @@ impl Renderer {
         for x in min_x..=max_x {
             for y in min_y..=max_y {
                 let p = Vec2::new(x as f32, y as f32);
-                if let Some((u, v, w)) = Self::barycentric(a, b, c, &p) {
-                    if u >= 0.0 && v >= 0.0 && w >= 0.0 {
-                        self.paint_pixel(x, y, color);
-                    }
+                if let Some((u, v, w)) = Self::barycentric(a, b, c, &p)
+                        && u >= 0.0 && v >= 0.0 && w >= 0.0 {
+
+                    self.paint_pixel(x, y, color);
                 }
             }
         }
@@ -239,7 +240,7 @@ impl Renderer {
         let ap = p.sub(a);
 
         let u = ab.cross(&ap) / denom;
-        let v = ap.cross(&ac) / denom;
+        let v = ap.cross(ac) / denom;
         let w = 1.0 - u - v;
 
         (u, v, w)
