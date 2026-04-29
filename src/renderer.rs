@@ -1,11 +1,14 @@
 
 use std::f32;
 
+use crate::light::Light;
+use crate::model::Color;
 use crate::model::Mesh;
 use crate::model::Vec2;
 use crate::model::Vec3;
 use crate::model::Triangle;
 use crate::camera::Camera;
+use crate::camera::RenderMode;
 use crate::consts::WIDTH;
 use crate::consts::HEIGHT;
 use crate::consts::VERT_SIZE;
@@ -48,6 +51,17 @@ impl Renderer {
         }
     }
 
+    pub fn render(&mut self, mesh: &Mesh, lights: &Vec<Light>) {
+        for mode in self.camera.render_modes.clone() {
+            match mode {
+                RenderMode::Vertex => self.draw_vertices(mesh),
+                RenderMode::Wireframe => self.draw_defined_wireframe(mesh),
+                RenderMode::FaceShaded => self.draw_defined_faces(mesh, lights, true),
+                RenderMode::FaceNormals => self.draw_defined_faces(mesh, lights, false),
+            }
+        }
+    }
+
     pub fn draw_vertices(&mut self, mesh: &Mesh) {
         for t_v in &mesh.transformed_vertices() {
             if let Some(v) = self.camera.val_proj_scrn_vertex(t_v) {
@@ -77,9 +91,9 @@ impl Renderer {
         }
     }
 
-    pub fn draw_defined_faces(&mut self, mesh: &Mesh) {
+    pub fn draw_defined_faces(&mut self, mesh: &Mesh, lights: &Vec<Light>, shaded: bool) {
         let verts = &mesh.transformed_vertices();
-        let sun_light = Vec3::new(-0.5, 1., -0.5).mult(1.);
+        // let sun_light = Vec3::new(-0.5, 1., -0.5).mult(1.);
 
         for face in &mesh.faces {
             if face.points.len() >= 3 {
@@ -92,31 +106,64 @@ impl Renderer {
                     let triag = Triangle::new(
                                 root.clone(), p2.clone(), p3.clone());
                     let normal = triag.normal().unit();
-                    if true {
-                    // if normal.z < 0. {
-                        // let r = if normal.x < 0. { 0. } else { normal.x * 255.} as u32;
-                        // let g = if normal.y < 0. { 0. } else { normal.y * 255.} as u32;
-                        // let b = if normal.z < 0. { 0. } else { normal.z * 255.} as u32;
-                        // let r = ((normal.x + 1.) * 127.) as u32;
-                        // let g = ((normal.y + 1.) * 127.) as u32;
-                        // let b = ((normal.z + 1.) * 127.) as u32;
-                        // let c= (r << 16) + (g << 8) + b;
 
-                        let brightness = sun_light.dot(&normal);
-                        let clamped = brightness.clamp(0., 1.);
-                        let r = (clamped * 127.) as u32;
-                        let g = (clamped * 212.) as u32;
-                        let b = (clamped * 255.) as u32;
-                        let c= (r << 16) + (g << 8) + b;
+                    let color =
+                        if shaded { Self::get_shaded_color(&normal, lights, &triag) }
+                        else { Self::get_normal_color(&normal) };
 
-                        self.draw_3d_triangle(root, p2, p3, c);
-                    }
+                    self.draw_3d_triangle(root, p2, p3, color);
                 }
             }
             else {
                 println!("Invalid Polygon");
             }
         }
+    }
+
+    fn get_shaded_color(normal: &Vec3, lights: &Vec<Light>, trig: &Triangle) -> u32 {
+        let mut res = Color::black();
+        for light in lights {
+            let (brightness, color) = match light {
+                Light::Sun { direction, intensity, color } => {
+                    (direction.dot(normal) * intensity, color)
+                },
+                Light::Point { location, intensity, color } => {
+                    let t_center = trig.center();
+                    let mut to_face = location.clone();
+                    to_face.sub(&t_center);
+                    let base_bright = to_face.dot(normal);
+                    let dist = to_face.len2();
+                    ((base_bright / dist) * intensity, color)
+                },
+                Light::Spot { location, direction, angle, intensity, color } => {
+                    let t_center = trig.center();
+                    let mut to_face = location.clone();
+                    to_face.sub(&t_center);
+                    let base_bright = to_face.dot(normal);
+                    let dist = to_face.len2();
+
+                    let light_angle_cos = to_face.unit().dot(&direction.unit());
+                    if light_angle_cos > angle.cos() {
+                        ((base_bright / dist) * intensity, color)
+                    }
+                    else {
+                        (0., color)
+                    }
+                },
+            };
+            let mut tc = color.clone();
+            tc.mult(brightness.max(0.));
+            res.add(&tc);
+        }
+
+        res.get_color_val()
+    }
+
+    fn get_normal_color(normal: &Vec3) -> u32 {
+        let r = if normal.x < 0. { 0. } else { normal.x * 255.} as u32;
+        let g = if normal.y < 0. { 0. } else { normal.y * 255.} as u32;
+        let b = if normal.z < 0. { 0. } else { normal.z * 255.} as u32;
+        (r << 16) + (g << 8) + b
     }
 
     fn draw_circle(&mut self, pos: &Vec2, size: f32, color: u32) {

@@ -10,10 +10,10 @@ impl Vec3 {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self {x, y, z}
     }
-    pub fn zero() -> Self{
+    pub fn zero() -> Self {
         Self::new(0., 0., 0.)
     }
-    pub fn one() -> Self{
+    pub fn one() -> Self {
         Self::new(1., 1., 1.)
     }
     pub fn add(&mut self, v: &Vec3) {
@@ -46,6 +46,9 @@ impl Vec3 {
     }
     pub fn mult(&self, s: f32) -> Vec3 {
         Vec3::new(self.x * s, self.y * s, self.z * s)
+    }
+    pub fn div(&self, s: f32) -> Vec3 {
+        Vec3::new(self.x / s, self.y / s, self.z / s)
     }
 }
 
@@ -114,6 +117,13 @@ impl Triangle {
         let nz = (a.x * b.y) - (a.y * b.x);
 
         Vec3::new(nx, ny, nz)
+    }
+    pub fn center(&self) -> Vec3 {
+        let mut nv = Vec3::zero();
+        nv.add(&self.points[0]);
+        nv.add(&self.points[1]);
+        nv.add(&self.points[2]);
+        nv.mult(1. / 3.)
     }
 }
 
@@ -227,5 +237,55 @@ impl Face {
     }
     pub fn with_points(points: Vec<u32>) -> Self {
         Self { points }
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Color {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32
+}
+impl  Color {
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        Self {r, g, b}
+    }
+    pub fn black() -> Self {
+        Self::new(0., 0., 0.)
+    }
+    pub fn white() -> Self {
+        Self::new(1., 1., 1.)
+    }
+    pub fn add(&mut self, v: &Color) {
+        self.r += v.r;
+        self.g += v.g;
+        self.b += v.b;
+    }
+    pub fn sub(&mut self, v: &Color) {
+        self.r -= v.r;
+        self.g -= v.g;
+        self.b -= v.b;
+    }
+    pub fn mult(&mut self, s: f32) {
+        self.r *= s;
+        self.g *= s;
+        self.b *= s;
+    }
+    pub fn div(&mut self, s: f32) {
+        self.r /= s;
+        self.g /= s;
+        self.b /= s;
+    }
+    pub fn clamp(&mut self) {
+        self.r = self.r.clamp(0., 1.);
+        self.g = self.g.clamp(0., 1.);
+        self.b = self.b.clamp(0., 1.);
+    }
+    pub fn get_color_val(&self) -> u32 {
+        let rr = ((self.r * 255.) as i32).clamp(0, 255);
+        let rg = ((self.g * 255.) as i32).clamp(0, 255);
+        let rb = ((self.b * 255.) as i32).clamp(0, 255);
+        ((rr << 16) + (rg << 8) + rb) as u32
     }
 }

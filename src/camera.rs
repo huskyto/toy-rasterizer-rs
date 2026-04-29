@@ -8,7 +8,8 @@ use crate::model::Vec3;
 pub struct Camera {
     pub fov: f32,
     pub position: Vec3,
-    pub direction: Vec3
+    pub direction: Vec3,
+    pub render_modes: Vec<RenderMode>,
 }
 impl Camera {
     pub fn val_proj_scrn_vertex(&self, v: &Vec3) -> Option<Vec2> {
@@ -64,6 +65,15 @@ impl Default for Camera {
         Self {
             fov: 1.,
             position: Vec3::zero(),
-            direction: Vec3::new(0., 0., 1.) }
+            direction: Vec3::new(0., 0., 1.),
+            render_modes: vec![ RenderMode::FaceShaded ] }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum RenderMode {
+    Vertex,
+    Wireframe,
+    FaceShaded,
+    FaceNormals
 }

@@ -1,5 +1,6 @@
 
 pub mod model;
+pub mod light;
 pub mod camera;
 pub mod consts;
 pub mod parser;
@@ -13,9 +14,12 @@ use std::time::Duration;
 use minifb::Window;
 use minifb::WindowOptions;
 
+use crate::light::Light;
+use crate::model::Color;
 use crate::model::Mesh;
 use crate::model::Vec3;
 use crate::camera::Camera;
+use crate::camera::RenderMode;
 use crate::consts::WIDTH;
 use crate::consts::HEIGHT;
 use crate::consts::BG_COLOR;
@@ -48,9 +52,27 @@ fn main() {
 
     let camera = Camera {
         fov: 1.,
+        render_modes: vec![
+            RenderMode::FaceShaded,
+            // RenderMode::FaceNormals,
+            // RenderMode::Wireframe,
+            // RenderMode::Vertex,
+        ],
         ..Default::default()
     };
     let mut renderer = Renderer::new(WIDTH, HEIGHT, camera);
+
+    let cs = Color::new(0.85, 0.6 , 0.2);
+    // let cs = Color::new(1., 1., 1.);
+    let cf = Color::new(0.5 , 0.75, 1.);
+    let cg = Color::new(0.1 , 0.75, 0.1);
+    // let cg = Color::new(0.75 , 0.0, 1.);
+    let lights = vec![
+        Light::Sun { direction: Vec3::new(-0.5, 1., -0.5), intensity: 0.3, color: cs },
+        Light::Point { location: Vec3::new(2., -4., 0.5), intensity: 4., color: cf },
+        Light::Spot { location: Vec3::new(0., 7., 5.), direction: Vec3::new(0., 1., 0.),
+            angle: 0.5, intensity: 4., color: cg }
+    ];
 
     let fps_alpha = 0.1;
     let mut fps: f64 = 0.;
@@ -92,8 +114,9 @@ fn main() {
         polys.iter_mut().for_each(|p| p.rotate_y(0.01));
 
         for p in &polys {
+            renderer.render(p, &lights);
             // renderer.draw_defined_wireframe(p);
-            renderer.draw_vertices(p);
+            // renderer.draw_vertices(p);
             // renderer.draw_defined_faces(p);
         }
 
